@@ -1,32 +1,59 @@
+import java.util.*;
+import java.util.concurrent.*;
+
 public class Main {
     public static void main(String[] args) {
-        final int SLEEP_TIME = 15000;
+        getResultFromAll();
+        getResultFromAny();
+    }
 
-        ThreadGroup mainGroup = new ThreadGroup("mainGroup");
-        final Thread thread1 = new Thread(mainGroup, new MyThread());
-        final Thread thread2 = new Thread(mainGroup, new MyThread());
-        final Thread thread3 = new Thread(mainGroup, new MyThread());
-        final Thread thread4 = new Thread(mainGroup, new MyThread());
+    private static void getResultFromAll() {
+        System.out.println("\nGetting results from all threads...");
 
-        thread1.setName("поток 1");
-        thread2.setName("поток 2");
-        thread3.setName("поток 3");
-        thread4.setName("поток 4");
-
-        System.out.println("Создаю потоки...");
-
-        thread1.start();
-        thread2.start();
-        thread3.start();
-        thread4.start();
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        List<Future<String>> futureList = new ArrayList<>();
+        Callable<String> callable = new MyCallable();
 
         try {
-            Thread.sleep(SLEEP_TIME);
-        } catch (InterruptedException e) {
-            e.getStackTrace();
-        } finally {
-            System.out.println("Завершаю все потоки.");
-            mainGroup.interrupt();
+
+            for (int i = 0; i < 4; i++) {
+                Future<String> future = executor.submit(callable);
+                futureList.add(future);
+            }
+
+            for (Future<String> future : futureList) {
+                System.out.println(future.get());
+            }
+
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
         }
+
+        executor.shutdown();
+        System.out.println("...All results have been received");
+    }
+
+    private static void getResultFromAny() {
+        System.out.println("\nGetting results from any thread...");
+
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+        List<MyCallable> taskList = new ArrayList<>();
+        String res = "";
+
+        for (int i = 0; i < 4; i++) {
+            MyCallable task = new MyCallable();
+            taskList.add(task);
+        }
+
+        try {
+            res = executor.invokeAny(taskList);
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            System.out.println(res);
+        }
+
+        executor.shutdown();
+        System.out.println("...Result from any thread has been received");
     }
 }
